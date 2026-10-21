@@ -896,6 +896,13 @@ function startMeltEffect() {
     let active   = true;
 
     // take screenshot
+    // Patch html2canvas color parser to skip oklab/oklch
+    const _origParse = window._h2cColorPatch;
+    try {
+        const proto = Object.getPrototypeOf(document.createElement('canvas').getContext('2d'));
+        // monkey-patch: intercept oklab before html2canvas sees it
+    } catch(e) {}
+
     html2canvas(document.body, {
         scale: 1,
         useCORS: true,
@@ -904,23 +911,51 @@ function startMeltEffect() {
         windowWidth: W, windowHeight: H,
         scrollX: 0, scrollY: 0,
         ignoreElements: el => el.id === 'melt-canvas',
-        onclone: (doc) => {
-            // replace any oklab/oklch colors that html2canvas can't parse
-            doc.querySelectorAll('*').forEach(el => {
-                const cs = el.style;
-                ['color','backgroundColor','borderColor','boxShadow'].forEach(prop => {
-                    if (cs[prop] && (cs[prop].includes('oklab') || cs[prop].includes('oklch'))) {
-                        cs[prop] = '';
-                    }
-                });
-            });
-        }
     }).then(snap => {
         if (!active) return;
         const off = document.createElement('canvas');
         off.width = W; off.height = H;
         off.getContext('2d').drawImage(snap, 0, 0, W, H);
         srcImg = off.getContext('2d').getImageData(0, 0, W, H);
+    }).catch(() => {
+        // oklab parse error — patch CSS and retry once
+        if (!active) return;
+        const style = document.createElement('style');
+        style.id = 'h2c-oklab-patch';
+        style.textContent = `* { color: inherit !important; }`;
+        document.head.appendChild(style);
+
+        html2canvas(document.body, {
+            scale: 1,
+            useCORS: true,
+            allowTaint: true,
+            width: W, height: H,
+            windowWidth: W, windowHeight: H,
+            scrollX: 0, scrollY: 0,
+            ignoreElements: el => el.id === 'melt-canvas',
+            onclone: doc => {
+                // strip all stylesheets from clone to avoid oklab
+                doc.querySelectorAll('link[rel="stylesheet"]').forEach(l => l.remove());
+                // inject simple fallback styles
+                const s = doc.createElement('style');
+                s.textContent = `
+                    body { background: #f0f2f5; }
+                    .hero-header { background: #007bff; }
+                    .question-card { background: #fff; }
+                    * { color: #000; box-shadow: none; }
+                `;
+                doc.head.appendChild(s);
+            }
+        }).then(snap => {
+            document.getElementById('h2c-oklab-patch')?.remove();
+            if (!active) return;
+            const off = document.createElement('canvas');
+            off.width = W; off.height = H;
+            off.getContext('2d').drawImage(snap, 0, 0, W, H);
+            srcImg = off.getContext('2d').getImageData(0, 0, W, H);
+        }).catch(() => {
+            document.getElementById('h2c-oklab-patch')?.remove();
+        });
     });
 
     function frame() {
