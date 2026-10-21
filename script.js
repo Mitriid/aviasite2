@@ -863,215 +863,133 @@ function startMeltEffect() {
     ov.className = 'wx-overlay melt-overlay';
     document.body.appendChild(ov);
 
-    // Spawn drip divs hanging off the bottom of header and card
-    // Only drip from the header
-    const header = document.querySelector('.hero-header');
-    if (header) {
-        header.style.overflow = 'visible';
-        const N = 9;
-        for (let i = 0; i < N; i++) {
-            const drip = document.createElement('div');
-            drip.className = 'css-drip';
-            const pct   = 4 + (i / (N - 1)) * 92;
-            const w     = 14 + Math.random() * 20;
-            const dur   = 3 + Math.random() * 3;
-            const delay = Math.random() * 2;
-            const maxH  = 40 + Math.random() * 100;
-            drip.style.cssText = `
-                position: absolute;
-                bottom: -1px;
-                left: calc(${pct}% - ${w/2}px);
-                width: ${w}px;
-                height: 0;
-                background: #007bff;
-                border-radius: 0 0 50% 50% / 0 0 ${w}px ${w}px;
-                pointer-events: none;
-                z-index: 100;
-                transition: height ${dur}s cubic-bezier(0.25, 0.8, 0.3, 1) ${delay}s;
-            `;
-            header.appendChild(drip);
-            requestAnimationFrame(() => requestAnimationFrame(() => {
-                if (document.body.classList.contains('weather-melt')) {
-                    drip.style.height = maxH + 'px';
-                }
-            }));
-        }
-    }
+    if (typeof html2canvas === 'undefined') return;
 
-    // slowly warp card with filter
-    questionCard.style.transition = 'filter 3s ease';
-    questionCard.style.filter = 'url(#melt-filter-light)';
+    const W = window.innerWidth;
+    const H = window.innerHeight;
 
-    // inject a very subtle SVG filter just for slight waviness
-    if (!document.getElementById('melt-filter-svg')) {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-        svg.id = 'melt-filter-svg';
-        svg.style.cssText = 'position:fixed;width:0;height:0;pointer-events:none;';
-        svg.innerHTML = `<defs>
-            <filter id="melt-filter-light" x="-5%" y="-5%" width="110%" height="115%">
-                <feTurbulence type="turbulence" baseFrequency="0.02 0.004"
-                    numOctaves="2" seed="4" result="t">
-                    <animate attributeName="baseFrequency"
-                        values="0.02 0.004; 0.022 0.007; 0.02 0.004"
-                        dur="4s" repeatCount="indefinite"/>
-                </feTurbulence>
-                <feDisplacementMap in="SourceGraphic" in2="t"
-                    scale="0" xChannelSelector="G" yChannelSelector="R">
-                    <animate attributeName="scale"
-                        values="0;18;18"
-                        keyTimes="0;0.3;1"
-                        dur="4s" fill="freeze"/>
-                </feDisplacementMap>
-            </filter>
-        </defs>`;
-        document.body.appendChild(svg);
-    }
-
-    if (false) { // disable old canvas path
-    function captureToCanvas(cb) {
-        const off = document.createElement('canvas');
-        off.width = W; off.height = H;
-        const octx = off.getContext('2d');
-
-        // 1. Background (beige/grey)
-        const bgColor = getComputedStyle(document.body).backgroundColor || '#f0f2f5';
-        octx.fillStyle = bgColor;
-        octx.fillRect(0, 0, W, H);
-
-        // 2. Blue hero header
-        const header = document.querySelector('.hero-header');
-        if (header) {
-            const r = header.getBoundingClientRect();
-            octx.fillStyle = '#007bff';
-            octx.beginPath();
-            octx.roundRect(r.left, r.top, r.width, r.height, [0, 0, 24, 24]);
-            octx.fill();
-            // Header text
-            const title = document.querySelector('.hero-title');
-            if (title) {
-                const tr = title.getBoundingClientRect();
-                octx.fillStyle = '#ffffff';
-                octx.font = `800 ${parseInt(getComputedStyle(title).fontSize)}px -apple-system,sans-serif`;
-                octx.textAlign = 'center';
-                octx.fillText(title.textContent, tr.left + tr.width/2, tr.bottom - 8);
-            }
-        }
-
-        // 3. Question card
-        const card = document.querySelector('.question-card');
-        if (card) {
-            const r = card.getBoundingClientRect();
-            octx.fillStyle = '#ffffff';
-            octx.beginPath();
-            octx.roundRect(r.left, r.top, r.width, r.height, 20);
-            octx.fill();
-
-            // Card title
-            const qt = document.querySelector('.question-title');
-            if (qt) {
-                const tr = qt.getBoundingClientRect();
-                octx.fillStyle = '#0d1b2a';
-                octx.font = `700 ${parseInt(getComputedStyle(qt).fontSize)}px -apple-system,sans-serif`;
-                octx.textAlign = 'center';
-                octx.fillText(qt.textContent, tr.left + tr.width/2, tr.bottom - 4);
-            }
-
-            // Stage label text
-            const lbl = document.querySelector('.weather-stage-label');
-            if (lbl) {
-                const lr = lbl.getBoundingClientRect();
-                octx.fillStyle = '#0d1b2a';
-                octx.font = `700 15px -apple-system,sans-serif`;
-                octx.textAlign = 'left';
-                octx.fillText(lbl.querySelector('.wsl-text')?.textContent || '', lr.left, lr.top + lr.height/2 + 20);
-            }
-
-            // Confirm button
-            const btn = document.querySelector('.weather-confirm-btn');
-            if (btn) {
-                const br = btn.getBoundingClientRect();
-                octx.fillStyle = '#007bff';
-                octx.beginPath();
-                octx.roundRect(br.left, br.top, br.width, br.height, 14);
-                octx.fill();
-                octx.fillStyle = '#ffffff';
-                octx.font = `700 17px -apple-system,sans-serif`;
-                octx.textAlign = 'center';
-                octx.fillText(btn.textContent, br.left + br.width/2, br.top + br.height/2 + 6);
-            }
-        }
-
-        // 4. Thermometer tube
-        const tube = document.querySelector('.thermo-tube');
-        const bulb = document.querySelector('.thermo-bulb');
-        const mercury = document.querySelector('.thermo-mercury');
-        if (tube && bulb && mercury) {
-            const tr  = tube.getBoundingClientRect();
-            const br  = bulb.getBoundingClientRect();
-            const mr  = mercury.getBoundingClientRect();
-            const mercColor = getComputedStyle(mercury).backgroundColor || '#e53935';
-
-            // tube background
-            octx.fillStyle = '#e0e4ea';
-            octx.beginPath();
-            octx.roundRect(tr.left, tr.top, tr.width, tr.height, [13,13,0,0]);
-            octx.fill();
-
-            // mercury fill
-            octx.fillStyle = mercColor;
-            octx.fillRect(mr.left, mr.top, mr.width, mr.height);
-
-            // bulb
-            octx.fillStyle = mercColor;
-            octx.beginPath();
-            octx.arc(br.left + br.width/2, br.top + br.height/2, br.width/2, 0, Math.PI*2);
-            octx.fill();
-        }
-
-        cb(octx.getImageData(0, 0, W, H));
-    }
-
-    // --- Setup drip canvas ---
+    // canvas overlay
     let cvs = document.getElementById('melt-canvas');
     if (cvs) cvs.remove();
     cvs = document.createElement('canvas');
     cvs.id = 'melt-canvas';
-    cvs.width = W; cvs.height = H;
-    cvs.style.cssText = `position:fixed;top:0;left:0;width:100%;height:100%;
-        pointer-events:none;z-index:9995;opacity:0;transition:opacity 0.5s;`;
+    cvs.width  = W;
+    cvs.height = H;
+    cvs.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9995;';
     document.body.appendChild(cvs);
     const ctx = cvs.getContext('2d');
 
-    // Per-column state
-    const STRIP = 6;
-    const cols = Math.ceil(W / STRIP);
-    const drip  = new Float32Array(cols);
-    const speed = new Float32Array(cols);
-    const phase = new Float32Array(cols);
+    // per-column drip state
+    const STRIP = 8;
+    const cols  = Math.ceil(W / STRIP);
+    const dripY = new Float32Array(cols); // current drip offset px
+    const spd   = new Float32Array(cols);
+    const ph    = new Float32Array(cols);
     for (let i = 0; i < cols; i++) {
-        speed[i] = 0.6 + Math.random() * 0.8;
-        phase[i] = Math.random() * Math.PI * 2;
-        drip[i]  = -(20 + Math.random() * H * 0.4); // staggered start
+        spd[i] = 0.5 + Math.random() * 0.7;
+        ph[i]  = Math.random() * Math.PI * 2;
+        dripY[i] = -(30 + Math.random() * H * 0.5); // staggered
     }
 
+    let srcImg   = null;
     let intensity = 0;
-    let srcImg = null;
+    let active   = true;
 
-    } // end disabled canvas block
+    // take screenshot
+    html2canvas(document.body, {
+        scale: 1,
+        useCORS: true,
+        allowTaint: true,
+        width: W, height: H,
+        windowWidth: W, windowHeight: H,
+        scrollX: 0, scrollY: 0,
+    }).then(snap => {
+        if (!active) return;
+        const off = document.createElement('canvas');
+        off.width = W; off.height = H;
+        off.getContext('2d').drawImage(snap, 0, 0, W, H);
+        srcImg = off.getContext('2d').getImageData(0, 0, W, H);
+    });
+
+    function frame() {
+        if (!active) return;
+
+        const melting = document.body.classList.contains('weather-melt');
+        intensity = melting
+            ? Math.min(1, intensity + 0.003)   // ~5s ramp up
+            : Math.max(0, intensity - 0.1);     // fast snap back
+
+        if (!melting && intensity <= 0) {
+            cvs.remove();
+            active = false;
+            return;
+        }
+
+        if (!srcImg) {
+            weatherAnimFrameId = requestAnimationFrame(frame);
+            return;
+        }
+
+        ctx.clearRect(0, 0, W, H);
+        const src    = srcImg.data;
+        const maxDrip = H * 0.6 * intensity;
+
+        for (let c = 0; c < cols; c++) {
+            const x  = c * STRIP;
+            const sw = Math.min(STRIP, W - x);
+            if (sw <= 0) break;
+
+            // advance drip
+            dripY[c] += spd[c] * intensity;
+            const raw    = Math.max(0, dripY[c]);
+            const offset = Math.min(raw, maxDrip);
+            const xw     = Math.sin(ph[c] + raw * 0.012) * 2.5 * intensity;
+
+            if (offset < 1) {
+                // not yet dripping — draw normally
+                putStrip(ctx, src, W, H, x, sw, 0, H, x + xw, 0);
+            } else {
+                // main content shifted down
+                const srcH = Math.max(1, H - offset);
+                putStrip(ctx, src, W, H, x, sw, 0, srcH, x + xw, offset);
+                // stretched tail — last 8 rows pulled into a drip
+                putStrip(ctx, src, W, H, x, sw, H - 8, 8, x + xw, H - 8, sw, offset + 8);
+            }
+        }
+
+        weatherAnimFrameId = requestAnimationFrame(frame);
+    }
+
+    weatherAnimFrameId = requestAnimationFrame(frame);
+}
+
+function putStrip(ctx, src, W, H, sx, sw, sy, sh, dx, dy, dw, dh) {
+    if (!dw) dw = sw;
+    if (!dh) dh = sh;
+    if (sh <= 0 || dh <= 0 || sw <= 0) return;
+    const off = new OffscreenCanvas(sw, sh);
+    const oc  = off.getContext('2d');
+    const id  = oc.createImageData(sw, sh);
+    const d   = id.data;
+    for (let r = 0; r < sh; r++) {
+        for (let c = 0; c < sw; c++) {
+            const psx = Math.min(sx + c, W - 1);
+            const psy = Math.min(sy + r, H - 1);
+            const si  = (psy * W + psx) * 4;
+            const di  = (r * sw + c) * 4;
+            d[di]   = src[si];
+            d[di+1] = src[si+1];
+            d[di+2] = src[si+2];
+            d[di+3] = src[si+3];
+        }
+    }
+    oc.putImageData(id, 0, 0);
+    ctx.drawImage(off, dx, dy, dw, dh);
 }
 
 function stopMeltDrips() {
-    // retract all drips instantly
-    document.querySelectorAll('.css-drip').forEach(d => {
-        d.style.transition = 'height 0.3s ease';
-        d.style.height = '0px';
-        setTimeout(() => d.remove(), 350);
-    });
-    // remove card filter
-    if (questionCard) {
-        questionCard.style.filter = '';
-        questionCard.style.transition = '';
-    }
+    document.querySelectorAll('.css-drip').forEach(d => d.remove());
+    if (questionCard) { questionCard.style.filter = ''; questionCard.style.transition = ''; }
     document.getElementById('melt-filter-svg')?.remove();
     document.getElementById('melt-canvas')?.remove();
     document.body.style.filter = '';
