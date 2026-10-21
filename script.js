@@ -903,6 +903,18 @@ function startMeltEffect() {
         width: W, height: H,
         windowWidth: W, windowHeight: H,
         scrollX: 0, scrollY: 0,
+        ignoreElements: el => el.id === 'melt-canvas',
+        onclone: (doc) => {
+            // replace any oklab/oklch colors that html2canvas can't parse
+            doc.querySelectorAll('*').forEach(el => {
+                const cs = el.style;
+                ['color','backgroundColor','borderColor','boxShadow'].forEach(prop => {
+                    if (cs[prop] && (cs[prop].includes('oklab') || cs[prop].includes('oklch'))) {
+                        cs[prop] = '';
+                    }
+                });
+            });
+        }
     }).then(snap => {
         if (!active) return;
         const off = document.createElement('canvas');
