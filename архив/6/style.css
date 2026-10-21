@@ -1,0 +1,328 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #f0f2f5;
+    color: #1a202c;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+/* Синяя шапка */
+.hero-header {
+    width: 100%;
+    background: #007bff;
+    padding: 60px 20px 80px 20px;
+    text-align: center;
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+}
+
+.hero-title {
+    color: #ffffff;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+/* Карточка вопросов / игры */
+.main-container {
+    width: 100%;
+    max-width: 520px;
+    padding: 0 20px;
+    margin-top: -40px;
+    margin-bottom: 50px;
+}
+
+.question-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 32px 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    text-align: center;
+    transform: perspective(1000px) rotateY(0deg);
+    transition: transform 0.075s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.question-card.flip-out {
+    transform: perspective(1000px) rotateY(90deg);
+    transition: transform 0.075s ease-in;
+}
+
+.question-card.flip-in-start {
+    transform: perspective(1000px) rotateY(-90deg);
+    transition: none;
+}
+
+/* Когда карточка становится игровым полем (фиксируем высоту, чтобы не скакала) */
+.question-card.game-mode {
+    padding-bottom: 32px;
+    cursor: none;
+}
+
+.question-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0d1b2a;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 10;
+}
+
+/* Сетка ответов */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    position: relative;
+}
+
+/* Игровой контейнер фиксированной высоты */
+.options-grid.game-container {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 650px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.option-btn {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 16px;
+    padding: 20px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    outline: none;
+    position: relative;
+    transform-origin: center center;
+}
+
+.option-btn:hover {
+    border-color: #007bff;
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.15);
+}
+
+.option-emoji {
+    font-size: 36px;
+}
+
+.option-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: #212529;
+}
+
+/* --- СТИЛИ МИНИ-ИГРЫ --- */
+.game-progress-container {
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 12px; /* Сделали толще */
+    background: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.game-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: #ff9800;
+    border-radius: 6px;
+    transition: width 0.3s ease;
+}
+
+/* Градиент теперь НИЖЕ полоски прогресса */
+.game-gradient-top {
+    position: absolute;
+    top: 12px;
+    left: 0;
+    right: 0;
+    height: 55px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.game-plate {
+    position: absolute;
+    font-size: 88px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 5;
+    transition: transform 0.05s linear;
+}
+
+.falling-item {
+    position: absolute;
+    font-size: 46px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 4;
+    animation: food-sway 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes food-sway {
+    0% { transform: translate(-50%, -50%) rotate(-8deg); }
+    100% { transform: translate(-50%, -50%) rotate(8deg); }
+}
+
+.stuck-food {
+    position: absolute;
+    font-size: 36px;
+    transform: translate(-50%, -50%);
+    z-index: 6;
+    animation: food-wobble 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes food-wobble {
+    0% { transform: translate(-50%, -50%) rotate(-6deg); }
+    100% { transform: translate(-50%, -50%) rotate(6deg); }
+}
+
+/* --- АНИМАЦИИ КНОПОК 1 ВОПРОСА --- */
+.smooth-press {
+    animation: smooth-bounce 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes smooth-bounce {
+    0% { transform: scale(1); }
+    40% { transform: scale(0.94); }
+    100% { transform: scale(1); }
+}
+
+.car-vibration {
+    animation: engine-start 0.6s ease-in-out forwards;
+}
+
+@keyframes engine-start {
+    0% { transform: translate(0, 0) scale(0.95); }
+    10% { transform: translate(-3px, -2px) rotate(-1deg); }
+    20% { transform: translate(3px, 2px) rotate(1deg); }
+    30% { transform: translate(-4px, 1px) rotate(-1.5deg); }
+    40% { transform: translate(4px, -1px) rotate(1.5deg); }
+    50% { transform: translate(-2px, 3px) rotate(-0.5deg); }
+    60% { transform: translate(3px, -2px) rotate(1deg); }
+    70% { transform: translate(-2px, -1px) rotate(-0.5deg); }
+    80% { transform: translate(2px, 1px) rotate(0.5deg); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+
+/* --- АНИМАЦИИ КНОПОК 2 ВОПРОСА --- */
+.anim-mosquito {
+    animation: mosquito-buzz 1.5s ease-in-out forwards;
+}
+
+@keyframes mosquito-buzz {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    5%, 25%, 45%, 65%, 85% { transform: translate(-4px, -3px) rotate(-2deg); }
+    10%, 30%, 50%, 70%, 90% { transform: translate(4px, 3px) rotate(2deg); }
+    15%, 35%, 55%, 75%, 95% { transform: translate(4px, -3px) rotate(-1deg); }
+    20%, 40%, 60%, 80% { transform: translate(-4px, 3px) rotate(1deg); }
+}
+
+.anim-hostel {
+    animation: hostel-earthquake 3s ease-in forwards;
+}
+
+@keyframes hostel-earthquake {
+    0% { transform: translate(0, 0); }
+    2%, 6%, 10%, 14%, 18% { transform: translate(-1px, 1px) rotate(-0.5deg); }
+    4%, 8%, 12%, 16%, 20% { transform: translate(1px, -1px) rotate(0.5deg); }
+    22%, 26%, 30%, 34%, 38% { transform: translate(-2px, 2px) rotate(-1deg); }
+    24%, 28%, 32%, 36%, 40% { transform: translate(2px, -2px) rotate(1deg); }
+    42%, 46%, 50%, 54%, 58% { transform: translate(-3px, 3px) rotate(-1.5deg); }
+    44%, 48%, 52%, 56%, 60% { transform: translate(3px, -3px) rotate(1.5deg); }
+    62%, 66%, 70%, 74%, 78% { transform: translate(-5px, 4px) rotate(-2deg); }
+    64%, 68%, 72%, 76%, 80% { transform: translate(5px, -4px) rotate(2deg); }
+    82%, 86%, 90%, 94%, 98% { transform: translate(-7px, 6px) rotate(-3deg); }
+    84%, 88%, 92%, 96%      { transform: translate(7px, -6px) rotate(3deg); }
+    100% { transform: translate(0, 0); }
+}
+
+.anim-simple-press {
+    animation: apt-press 0.4s ease-out forwards;
+}
+
+@keyframes apt-press {
+    0% { transform: scale(1); }
+    30% { transform: scale(0.96); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    100% { transform: scale(1); }
+}
+
+.anim-harp {
+    animation: harp-pulse 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes harp-pulse {
+    0% { transform: scale(1); }
+    15% { transform: scale(1.05); }
+    30% { transform: scale(0.97); }
+    45% { transform: scale(1.02); }
+    60% { transform: scale(0.99); }
+    75% { transform: scale(1.01); }
+    100% { transform: scale(1); }
+}
+
+/* Спецэффекты */
+.dollar-particle {
+    position: fixed;
+    font-size: 30px;
+    pointer-events: none;
+    z-index: 9999;
+    animation: cannon-fly 1.2s cubic-bezier(0.12, 0.84, 0.5, 1) forwards;
+}
+
+@keyframes cannon-fly {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.4) rotate(0deg); }
+    50% { opacity: 1; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1.4) rotate(var(--rot)); }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--x) * 1.3), calc(-50% + var(--y) + 120px)) scale(0.6) rotate(calc(var(--rot) * 2.5)); }
+}
+
+.divine-glow {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 223, 0, 0.9) 0%, rgba(255, 180, 0, 0.6) 40%, rgba(255, 255, 255, 0) 70%);
+    box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+    animation: divine-expand 1.4s ease-out forwards;
+}
+
+@keyframes divine-expand {
+    0% { width: 0px; height: 0px; opacity: 1; transform: translate(-50%, -50%) scale(0.2); }
+    50% { width: 300px; height: 300px; opacity: 0.85; transform: translate(-50%, -50%) scale(1.2); }
+    100% { width: 450px; height: 450px; opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+
+.divine-sparkle {
+    position: fixed;
+    font-size: 28px;
+    pointer-events: none;
+    z-index: 9999;
+    animation: divine-float 1.3s ease-out forwards;
+}
+
+@keyframes divine-float {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1.4) rotate(180deg); }
+}

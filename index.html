@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Куда валить?</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="hero-header">
+        <h1 class="hero-title" id="main-header">Куда валить?</h1>
+    </header>
+
+    <main class="main-container">
+        <div class="question-card" id="question-card">
+            <h2 class="question-title" id="question-title">Загрузка...</h2>
+            
+            <div class="options-grid" id="options-grid">
+                <!-- Варианты ответов подгружаются динамически -->
+            </div>
+
+            <!-- Кнопка пропуска для тестирования -->
+            <button id="skip-btn" class="skip-btn" title="Пропустить вопрос">Пропустить ➜</button>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
