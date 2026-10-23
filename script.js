@@ -863,8 +863,79 @@ function startMeltEffect() {
     ov.className = 'wx-overlay melt-overlay';
     document.body.appendChild(ov);
 
-    if (typeof html2canvas === 'undefined') return;
+    if (typeof gsap === 'undefined') return;
 
+    // inject SVG turbulence filter for waviness
+    if (!document.getElementById('melt-filter-svg')) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.id = 'melt-filter-svg';
+        svg.style.cssText = 'position:fixed;width:0;height:0;pointer-events:none;top:0;left:0;';
+        svg.innerHTML = `<defs>
+            <filter id="melt-wave" x="-10%" y="-10%" width="120%" height="140%">
+                <feTurbulence id="melt-turb" type="turbulence"
+                    baseFrequency="0.025 0.003" numOctaves="2" seed="2" result="t"/>
+                <feDisplacementMap in="SourceGraphic" in2="t"
+                    id="melt-disp" scale="0"
+                    xChannelSelector="G" yChannelSelector="R"/>
+            </filter>
+        </defs>`;
+        document.body.appendChild(svg);
+    }
+
+    const header = document.querySelector('.hero-header');
+    const card   = document.querySelector('.question-card');
+    const disp   = document.getElementById('melt-disp');
+    const turb   = document.getElementById('melt-turb');
+
+    // animate SVG displacement scale
+    let dispScale = 0;
+    let tick = 0;
+    function animDisp() {
+        if (!document.body.classList.contains('weather-melt')) {
+            dispScale = Math.max(0, dispScale - 2);
+            if (disp) disp.setAttribute('scale', dispScale);
+            if (dispScale > 0) weatherAnimFrameId = requestAnimationFrame(animDisp);
+            return;
+        }
+        tick++;
+        dispScale = Math.min(28, dispScale + 0.18);
+        const freq = 0.025 + Math.sin(tick * 0.01) * 0.005;
+        if (turb) turb.setAttribute('baseFrequency', `${freq} 0.003`);
+        if (disp) disp.setAttribute('scale', dispScale.toFixed(1));
+        weatherAnimFrameId = requestAnimationFrame(animDisp);
+    }
+    weatherAnimFrameId = requestAnimationFrame(animDisp);
+
+    // GSAP: header drips down, stretches vertically
+    if (header) {
+        header.style.transformOrigin = 'top center';
+        header.style.willChange = 'transform, filter';
+        header.style.filter = 'url(#melt-wave)';
+        gsap.to(header, {
+            scaleY: 1.18,
+            duration: 5,
+            ease: 'power1.inOut',
+            yoyo: false,
+        });
+    }
+
+    // GSAP: card wobbles and sags
+    if (card) {
+        card.style.transformOrigin = 'top center';
+        card.style.willChange = 'transform, filter';
+        card.style.filter = 'url(#melt-wave)';
+        gsap.to(card, {
+            scaleY: 1.06,
+            skewX: 1.5,
+            y: 12,
+            duration: 4,
+            ease: 'sine.inOut',
+            yoyo: true,
+            repeat: -1,
+        });
+    }
+
+    if (false) { // disabled old canvas code
     const W = window.innerWidth;
     const H = window.innerHeight;
 
@@ -895,14 +966,8 @@ function startMeltEffect() {
     let intensity = 0;
     let active   = true;
 
-    // take screenshot
-    // Patch html2canvas color parser to skip oklab/oklch
-    const _origParse = window._h2cColorPatch;
-    try {
-        const proto = Object.getPrototypeOf(document.createElement('canvas').getContext('2d'));
-        // monkey-patch: intercept oklab before html2canvas sees it
-    } catch(e) {}
-
+    // take screenshot after short delay so page has rendered
+    setTimeout(() => { if (!active) return;
     html2canvas(document.body, {
         scale: 1,
         useCORS: true,
@@ -959,7 +1024,7 @@ function startMeltEffect() {
         }).catch(() => {
             document.getElementById('h2c-oklab-patch')?.remove();
         });
-    });
+    }); }, 300); // end setTimeout
 
     function frame() {
         if (!active) return;
@@ -1011,35 +1076,22 @@ function startMeltEffect() {
     }
 
     weatherAnimFrameId = requestAnimationFrame(frame);
-}
-
-function putStrip(ctx, src, W, H, sx, sw, sy, sh, dx, dy, dw, dh) {
-    if (!dw) dw = sw;
-    if (!dh) dh = sh;
-    if (sh <= 0 || dh <= 0 || sw <= 0) return;
-    const off = new OffscreenCanvas(sw, sh);
-    const oc  = off.getContext('2d');
-    const id  = oc.createImageData(sw, sh);
-    const d   = id.data;
-    for (let r = 0; r < sh; r++) {
-        for (let c = 0; c < sw; c++) {
-            const psx = Math.min(sx + c, W - 1);
-            const psy = Math.min(sy + r, H - 1);
-            const si  = (psy * W + psx) * 4;
-            const di  = (r * sw + c) * 4;
-            d[di]   = src[si];
-            d[di+1] = src[si+1];
-            d[di+2] = src[si+2];
-            d[di+3] = src[si+3];
-        }
-    }
-    oc.putImageData(id, 0, 0);
-    ctx.drawImage(off, dx, dy, dw, dh);
+    } // end disabled canvas block
 }
 
 function stopMeltDrips() {
     document.querySelectorAll('.css-drip').forEach(d => d.remove());
-    if (questionCard) { questionCard.style.filter = ''; questionCard.style.transition = ''; }
+
+    const header = document.querySelector('.hero-header');
+    const card   = document.querySelector('.question-card');
+
+    if (typeof gsap !== 'undefined') {
+        if (header) gsap.killTweensOf(header);
+        if (card)   gsap.killTweensOf(card);
+    }
+    if (header) { header.style.transform = ''; header.style.filter = ''; header.style.willChange = ''; }
+    if (card)   { card.style.transform   = ''; card.style.filter   = ''; card.style.willChange   = ''; }
+
     document.getElementById('melt-filter-svg')?.remove();
     document.getElementById('melt-canvas')?.remove();
     document.body.style.filter = '';
