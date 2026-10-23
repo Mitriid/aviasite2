@@ -953,6 +953,9 @@ function startMeltEffect() {
             off.width = W; off.height = H;
             off.getContext('2d').drawImage(snap, 0, 0, W, H);
             srcImg = off.getContext('2d').getImageData(0, 0, W, H);
+            if (weatherAnimFrameId) cancelAnimationFrame(weatherAnimFrameId);
+            intensity = 0;
+            weatherAnimFrameId = requestAnimationFrame(frame);
         }).catch(() => {
             document.getElementById('h2c-oklab-patch')?.remove();
         });
