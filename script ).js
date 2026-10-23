@@ -865,70 +865,91 @@ function startMeltEffect() {
 
     if (typeof gsap === 'undefined') return;
 
-    // inject SVG turbulence filter for waviness
-    if (!document.getElementById('melt-filter-svg')) {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-        svg.id = 'melt-filter-svg';
-        svg.style.cssText = 'position:fixed;width:0;height:0;pointer-events:none;top:0;left:0;';
-        svg.innerHTML = `<defs>
-            <filter id="melt-wave" x="-10%" y="-10%" width="120%" height="140%">
-                <feTurbulence id="melt-turb" type="turbulence"
-                    baseFrequency="0.025 0.003" numOctaves="2" seed="2" result="t"/>
-                <feDisplacementMap in="SourceGraphic" in2="t"
-                    id="melt-disp" scale="0"
-                    xChannelSelector="G" yChannelSelector="R"/>
-            </filter>
-        </defs>`;
-        document.body.appendChild(svg);
-    }
-
     const header = document.querySelector('.hero-header');
     const card   = document.querySelector('.question-card');
-    const disp   = document.getElementById('melt-disp');
-    const turb   = document.getElementById('melt-turb');
+    const W      = window.innerWidth;
 
-    // animate SVG displacement scale
-    let dispScale = 0;
-    let tick = 0;
-    function animDisp() {
-        if (!document.body.classList.contains('weather-melt')) {
-            dispScale = Math.max(0, dispScale - 2);
-            if (disp) disp.setAttribute('scale', dispScale);
-            if (dispScale > 0) weatherAnimFrameId = requestAnimationFrame(animDisp);
+    // Build animated SVG wave edge — sits between header and card, no filter on text
+    function buildWavePath(phase, amp) {
+        const pts = 12;
+        const step = W / pts;
+        let d = `M 0 0 L 0 100%`;
+        // bottom wavy edge
+        d = `M 0 100 `;
+        for (let i = 0; i <= pts; i++) {
+            const x = i * step;
+            const y = 100 + Math.sin(i * 0.9 + phase) * amp + Math.sin(i * 1.7 + phase * 1.3) * amp * 0.5;
+            d += `L ${x} ${y} `;
+        }
+        d += `L ${W} 0 L 0 0 Z`;
+        return d;
+    }
+
+    // Drip overlay — absolutely positioned div under header with SVG wave bottom
+    let dripSvg = document.getElementById('melt-drip-svg');
+    if (!dripSvg) {
+        dripSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        dripSvg.id = 'melt-drip-svg';
+        dripSvg.style.cssText = `position:fixed;top:0;left:0;width:100%;pointer-events:none;z-index:9990;overflow:visible;`;
+        dripSvg.setAttribute('height', '300');
+        dripSvg.innerHTML = `<path id="melt-wave-path" fill="#007bff"/>`;
+        document.body.appendChild(dripSvg);
+    }
+
+    const wavePath = document.getElementById('melt-wave-path');
+    const headerRect = header ? header.getBoundingClientRect() : { bottom: 120 };
+    const baseY = headerRect.bottom;
+
+    let phase = 0;
+    let amp = 0;
+    let drip = 0; // how far down the wave has dripped
+
+    function animWave() {
+        const melting = document.body.classList.contains('weather-melt');
+
+        if (melting) {
+            amp  = Math.min(18, amp + 0.15);
+            drip = Math.min(60, drip + 0.4);
+        } else {
+            amp  = Math.max(0, amp  - 1.5);
+            drip = Math.max(0, drip - 4);
+        }
+
+        if (!melting && amp <= 0) {
+            dripSvg.style.display = 'none';
             return;
         }
-        tick++;
-        dispScale = Math.min(28, dispScale + 0.18);
-        const freq = 0.025 + Math.sin(tick * 0.01) * 0.005;
-        if (turb) turb.setAttribute('baseFrequency', `${freq} 0.003`);
-        if (disp) disp.setAttribute('scale', dispScale.toFixed(1));
-        weatherAnimFrameId = requestAnimationFrame(animDisp);
-    }
-    weatherAnimFrameId = requestAnimationFrame(animDisp);
 
-    // GSAP: header drips down, stretches vertically
-    if (header) {
-        header.style.transformOrigin = 'top center';
-        header.style.willChange = 'transform, filter';
-        header.style.filter = 'url(#melt-wave)';
-        gsap.to(header, {
-            scaleY: 1.18,
-            duration: 5,
-            ease: 'power1.inOut',
-            yoyo: false,
-        });
+        dripSvg.style.display = '';
+        phase += 0.03;
+
+        const pts = 16;
+        const step = W / pts;
+        let d = `M 0 ${baseY + drip + amp} `;
+        for (let i = 0; i <= pts; i++) {
+            const x = i * step;
+            const y = baseY + drip
+                + Math.sin(i * 0.85 + phase) * amp
+                + Math.sin(i * 1.6  + phase * 1.4) * amp * 0.4;
+            d += `L ${x} ${y} `;
+        }
+        d += `L ${W} 0 L 0 0 Z`;
+        if (wavePath) wavePath.setAttribute('d', d);
+
+        weatherAnimFrameId = requestAnimationFrame(animWave);
     }
 
-    // GSAP: card wobbles and sags
+    dripSvg.style.display = '';
+    weatherAnimFrameId = requestAnimationFrame(animWave);
+
+    // Card: gentle sag with GSAP
     if (card) {
         card.style.transformOrigin = 'top center';
-        card.style.willChange = 'transform, filter';
-        card.style.filter = 'url(#melt-wave)';
         gsap.to(card, {
-            scaleY: 1.06,
-            skewX: 1.5,
-            y: 12,
-            duration: 4,
+            scaleY: 1.04,
+            skewX: 1,
+            y: 8,
+            duration: 3.5,
             ease: 'sine.inOut',
             yoyo: true,
             repeat: -1,
@@ -1093,6 +1114,7 @@ function stopMeltDrips() {
     if (card)   { card.style.transform   = ''; card.style.filter   = ''; card.style.willChange   = ''; }
 
     document.getElementById('melt-filter-svg')?.remove();
+    document.getElementById('melt-drip-svg')?.remove();
     document.getElementById('melt-canvas')?.remove();
     document.body.style.filter = '';
 }
